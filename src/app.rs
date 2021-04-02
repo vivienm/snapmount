@@ -2,6 +2,10 @@ use std::fs;
 use std::io;
 use std::path::PathBuf;
 
+use structopt::clap::crate_name;
+use structopt::clap::Shell;
+use structopt::StructOpt;
+
 use crate::cli;
 use crate::config::{Config, ConfigMount};
 use crate::error::Result;
@@ -100,7 +104,16 @@ fn command_config(config: &Config) -> Result<()> {
     Ok(())
 }
 
+fn command_completion(shell: &Shell) {
+    cli::Args::clap().gen_completions_to(crate_name!(), *shell, &mut io::stdout());
+}
+
 pub fn main(args: &cli::Args) -> Result<()> {
+    if let cli::ArgsCommand::Completion { shell } = args.command {
+        command_completion(&shell);
+        return Ok(());
+    }
+
     env_logger::Builder::new()
         .format_module_path(false)
         .format_timestamp(None)
@@ -117,5 +130,6 @@ pub fn main(args: &cli::Args) -> Result<()> {
         cli::ArgsCommand::Mount => command_mount(&config),
         cli::ArgsCommand::Unmount => command_unmount(&config),
         cli::ArgsCommand::Config => command_config(&config),
+        cli::ArgsCommand::Completion { .. } => unreachable!(),
     }
 }

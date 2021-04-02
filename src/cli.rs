@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use structopt::clap::Shell;
 use structopt::StructOpt;
 
 #[derive(StructOpt)]
@@ -11,6 +12,12 @@ pub enum ArgsCommand {
     Unmount,
     /// Dumps the configuration
     Config,
+    /// Generates a completion script
+    Completion {
+        /// Shell to produce a completion file for
+        #[structopt(possible_values = &Shell::variants())]
+        shell: Shell,
+    },
 }
 
 /// Create and mount backup snapshots
