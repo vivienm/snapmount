@@ -107,7 +107,7 @@ pub fn main(args: &cli::Args) -> Result<()> {
         .filter_level(args.log_level)
         .init();
 
-    log::info!("Loading configuration file {}", args.config_path.display());
+    log::debug!("Loading configuration file {}", args.config_path.display());
     let config_file = fs::File::open(&args.config_path)?;
     let config = Config::load(config_file)?;
 
