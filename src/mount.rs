@@ -56,7 +56,7 @@ pub fn is_mountpoint<P: AsRef<Path>>(dir: P) -> io::Result<bool> {
 
 pub fn unmount<P: AsRef<Path>>(target: P) -> Result<()> {
     if target.as_ref().exists() && is_mountpoint(&target)? {
-        log::info!("Unmount {}", target.as_ref().display());
+        log::info!("Unmounting {}", target.as_ref().display());
         let mut command = Command::new("umount");
         command.arg(target.as_ref());
         check_run(command)?;
