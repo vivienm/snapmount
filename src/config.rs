@@ -1,10 +1,9 @@
 use std::fmt;
-use std::fs;
-use std::io::Read;
-use std::path::{Path, PathBuf};
+use std::io::{Read, Write};
+use std::path::PathBuf;
 use std::str::FromStr;
 
-use serde::{Deserialize, Deserializer};
+use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::error;
 
@@ -52,7 +51,7 @@ where
         .transpose()
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ConfigMountPoint {
     #[serde(deserialize_with = "expand_env_vars")]
@@ -65,7 +64,7 @@ fn default_lvm_snapshot_size() -> String {
     "1G".to_string()
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ConfigMountLvmSnapshot {
     #[serde(deserialize_with = "expand_env_vars")]
@@ -77,7 +76,7 @@ pub struct ConfigMountLvmSnapshot {
     pub size: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(tag = "type", deny_unknown_fields)]
 pub enum ConfigMount {
     #[serde(rename = "bind")]
@@ -97,7 +96,7 @@ pub enum ConfigMount {
     },
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
     pub mountpoint: ConfigMountPoint,
@@ -105,11 +104,16 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn from_path<P: AsRef<Path>>(path: P) -> error::Result<Self> {
-        let mut file = fs::File::open(path)?;
+    pub fn load<R: Read>(mut file: R) -> error::Result<Self> {
         let mut data = Vec::new();
         file.read_to_end(&mut data)?;
         let config: Config = toml::from_slice(&data)?;
         Ok(config)
+    }
+
+    pub fn dump<W: Write>(&self, mut file: W) -> error::Result<()> {
+        let s = toml::to_string_pretty(self)?;
+        file.write_all(s.as_bytes())?;
+        Ok(())
     }
 }

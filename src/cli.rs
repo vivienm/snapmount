@@ -8,6 +8,8 @@ pub enum ArgsCommand {
     Mount,
     /// Unmounts and removes backup snapshots
     Unmount,
+    /// Dumps the configuration
+    Config,
 }
 
 /// Create and mount backup snapshots

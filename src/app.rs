@@ -1,4 +1,5 @@
 use std::fs;
+use std::io;
 use std::path::PathBuf;
 
 use crate::cli;
@@ -61,7 +62,7 @@ fn handle_mount(config: &Config, mount: &ConfigMount) -> Result<()> {
     Ok(())
 }
 
-pub fn command_mount(config: &Config) -> Result<()> {
+fn command_mount(config: &Config) -> Result<()> {
     create_toplevel_mountpoint(config)?;
     for mount in config.mounts.iter() {
         handle_mount(config, mount)?;
@@ -85,11 +86,17 @@ fn handle_unmount(config: &Config, mount: &ConfigMount) -> Result<()> {
     Ok(())
 }
 
-pub fn command_unmount(config: &Config) -> Result<()> {
+fn command_unmount(config: &Config) -> Result<()> {
     for mount in config.mounts.iter().rev() {
         handle_unmount(config, mount)?;
     }
     remove_toplevel_mountpoint(config)?;
+    Ok(())
+}
+
+fn command_config(config: &Config) -> Result<()> {
+    let stdout = io::stdout();
+    config.dump(stdout)?;
     Ok(())
 }
 
@@ -101,10 +108,12 @@ pub fn main(args: &cli::Args) -> Result<()> {
         .init();
 
     log::info!("Loading configuration file {}", args.config_path.display());
-    let config = Config::from_path(&args.config_path)?;
+    let config_file = fs::File::open(&args.config_path)?;
+    let config = Config::load(config_file)?;
 
     match args.command {
         cli::ArgsCommand::Mount => command_mount(&config),
         cli::ArgsCommand::Unmount => command_unmount(&config),
+        cli::ArgsCommand::Config => command_config(&config),
     }
 }

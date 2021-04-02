@@ -9,7 +9,9 @@ pub enum Error {
     #[error("{0}")]
     Io(#[from] io::Error),
     #[error("{0}")]
-    Toml(#[from] toml::de::Error),
+    TomlSer(#[from] toml::ser::Error),
+    #[error("{0}")]
+    TomlDe(#[from] toml::de::Error),
     #[error("command failure")]
     Command(Command),
 }
