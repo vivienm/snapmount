@@ -105,7 +105,7 @@ $ snapmount unmount
 [INFO ] Unmounting /var/run/snapmount/boot
 [INFO ] Unmounting /var/run/snapmount/home
 [INFO ] Removing snapshot /dev/mapper/lvm-home-snapmount
-[INFO ] Unmount /var/run/snapmount
+[INFO ] Unmounting /var/run/snapmount
 [INFO ] Removing snapshot /dev/mapper/lvm-root-snapmount
 [INFO ] Removing toplevel mount directory /var/run/snapmount
 ```
