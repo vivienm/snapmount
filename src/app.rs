@@ -108,8 +108,10 @@ pub fn main(args: &cli::Args) -> Result<()> {
         .init();
 
     log::debug!("Loading configuration file {}", args.config_path.display());
-    let config_file = fs::File::open(&args.config_path)?;
-    let config = Config::load(config_file)?;
+    let config = {
+        let config_file = fs::File::open(&args.config_path)?;
+        Config::load(config_file)?
+    };
 
     match args.command {
         cli::ArgsCommand::Mount => command_mount(&config),
