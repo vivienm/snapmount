@@ -7,7 +7,7 @@ use crate::error::Result;
 use crate::lvm;
 use crate::mount;
 
-fn create_mountpoint(config: &Config) -> Result<()> {
+fn create_toplevel_mountpoint(config: &Config) -> Result<()> {
     if config.mountpoint.create && !config.mountpoint.path.exists() {
         log::info!(
             "Creating toplevel mount directory {}",
@@ -18,7 +18,7 @@ fn create_mountpoint(config: &Config) -> Result<()> {
     Ok(())
 }
 
-fn remove_mountpoint(config: &Config) -> Result<()> {
+fn remove_toplevel_mountpoint(config: &Config) -> Result<()> {
     if config.mountpoint.create && config.mountpoint.path.exists() {
         log::info!(
             "Removing toplevel mount directory {}",
@@ -31,14 +31,7 @@ fn remove_mountpoint(config: &Config) -> Result<()> {
 
 fn mount_target(config: &Config, mount: &ConfigMount) -> PathBuf {
     let target = match mount {
-        ConfigMount::Bind {
-            source,
-            target: None,
-        } => source,
-        ConfigMount::Bind {
-            target: Some(target),
-            ..
-        } => target,
+        ConfigMount::Bind { source, target } => target.as_ref().unwrap_or(source),
         ConfigMount::Lvm { target, .. } => target,
     };
     config
@@ -69,7 +62,7 @@ fn handle_mount(config: &Config, mount: &ConfigMount) -> Result<()> {
 }
 
 pub fn command_mount(config: &Config) -> Result<()> {
-    create_mountpoint(config)?;
+    create_toplevel_mountpoint(config)?;
     for mount in config.mounts.iter() {
         handle_mount(config, mount)?;
     }
@@ -96,7 +89,7 @@ pub fn command_unmount(config: &Config) -> Result<()> {
     for mount in config.mounts.iter().rev() {
         handle_unmount(config, mount)?;
     }
-    remove_mountpoint(config)?;
+    remove_toplevel_mountpoint(config)?;
     Ok(())
 }
 
