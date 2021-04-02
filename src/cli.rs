@@ -7,6 +7,7 @@ pub enum ArgsCommand {
     /// Creates and mounts backup snapshots
     Mount,
     /// Unmounts and removes backup snapshots
+    #[structopt(alias = "umount")]
     Unmount,
     /// Dumps the configuration
     Config,
