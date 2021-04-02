@@ -1,0 +1,29 @@
+[mountpoint]
+  path = "/var/run/snapmount/mount"
+  create = true
+
+[[mounts]]
+  type = "lvm"
+  source = "/dev/arch_main/root"
+  target = "/"
+  [mounts.snapshot]
+    lv_name = "root${SNAPMOUNT_LV_SUFFIX:-.snapmount}"
+
+[[mounts]]
+  type = "lvm"
+  source = "/dev/arch_main/home"
+  target = "/home"
+  [mounts.snapshot]
+    lv_name = "home${SNAPMOUNT_LV_SUFFIX:-.snapmount}"
+
+[[mounts]]
+  type = "bind"
+  source = "/boot"
+
+[[mounts]]
+  type = "bind"
+  source = "/boot/efi"
+
+[[mounts]]
+  type = "bind"
+  source = "/var/cache/restic"
