@@ -87,7 +87,7 @@ An example configuration file is given in [`examples/config.toml`](examples/conf
 
 The command `snapmount mount` will create the snapshots and mount them in the location defined in the configuration file (here, `/var/run/snapmount`).
 
-```command
+```console
 $ snapmount mount
 [INFO ] Creating toplevel mount directory /var/run/snapmount
 [INFO ] Creating snapshot lvm-root-snapmount of /dev/mapper/lvm-root
@@ -100,7 +100,7 @@ $ snapmount mount
 You can then run your backup program on the frozen rootfs `/var/run/snapmount`.
 Once this is done, run `snapmount unmount` to unmount and delete all backup snapshots:
 
-```command
+```console
 $ snapmount unmount
 [INFO ] Unmounting /var/run/snapmount/boot
 [INFO ] Unmounting /var/run/snapmount/home
