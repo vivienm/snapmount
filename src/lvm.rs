@@ -1,5 +1,5 @@
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
 
 use crate::command::check_run;
 use crate::error::Result;
@@ -37,7 +37,8 @@ impl<P: AsRef<Path>> LogicalVolume<P> {
             .arg(size)
             .arg("--name")
             .arg(name)
-            .arg(self.path.as_ref());
+            .arg(self.path.as_ref())
+            .stdout(Stdio::null());
         check_run(command)
     }
 
@@ -48,7 +49,8 @@ impl<P: AsRef<Path>> LogicalVolume<P> {
             command
                 .arg("--quiet")
                 .arg("--force")
-                .arg(self.path.as_ref());
+                .arg(self.path.as_ref())
+                .stdout(Stdio::null());
             check_run(command)?;
         }
         Ok(())
