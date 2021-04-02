@@ -47,8 +47,6 @@ fn mount_target(config: &Config, mount: &ConfigMount) -> PathBuf {
         .join(target.strip_prefix("/").unwrap_or(target))
 }
 
-const DEFAULT_LVM_SNAPSHOT_SIZE: &str = "1G";
-
 fn handle_mount(config: &Config, mount: &ConfigMount) -> Result<()> {
     let target = mount_target(config, mount);
     match mount {
@@ -57,13 +55,7 @@ fn handle_mount(config: &Config, mount: &ConfigMount) -> Result<()> {
         } => {
             // Create the LV snapshot.
             let source_lv = lvm::LogicalVolume::from_path(source);
-            source_lv.snapshot(
-                &snapshot.lv_name,
-                snapshot
-                    .size
-                    .as_ref()
-                    .unwrap_or(&String::from(DEFAULT_LVM_SNAPSHOT_SIZE)),
-            )?;
+            source_lv.snapshot(&snapshot.lv_name, &snapshot.size)?;
             // Mount it.
             let target_lv = source_lv.with_name(&snapshot.lv_name);
             mount::mount_ro(&target_lv.path, &target)?;

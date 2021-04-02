@@ -61,13 +61,20 @@ pub struct ConfigMountPoint {
     pub create: bool,
 }
 
+fn default_lvm_snapshot_size() -> String {
+    "1G".to_string()
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ConfigMountLvmSnapshot {
     #[serde(deserialize_with = "expand_env_vars")]
     pub lv_name: String,
-    #[serde(default, deserialize_with = "opt_expand_env_vars")]
-    pub size: Option<String>,
+    #[serde(
+        default = "default_lvm_snapshot_size",
+        deserialize_with = "expand_env_vars"
+    )]
+    pub size: String,
 }
 
 #[derive(Debug, Deserialize)]
