@@ -16,7 +16,7 @@ enum StringOrAnything<T> {
 }
 
 impl<'de, T> StringOrAnything<T> {
-    fn eval<D>(self) -> Result<T, D::Error>
+    fn expand_deserialize<D>(self) -> Result<T, D::Error>
     where
         D: Deserializer<'de>,
         T: FromStr + serde::Deserialize<'de>,
@@ -38,7 +38,7 @@ where
     T: FromStr + serde::Deserialize<'de>,
     <T as FromStr>::Err: fmt::Display,
 {
-    StringOrAnything::<T>::deserialize(deserializer)?.eval::<D>()
+    StringOrAnything::<T>::deserialize(deserializer)?.expand_deserialize::<D>()
 }
 
 fn opt_expand_env_vars<'de, T, D>(deserializer: D) -> Result<Option<T>, D::Error>
@@ -48,7 +48,7 @@ where
     <T as FromStr>::Err: fmt::Display,
 {
     Option::<StringOrAnything<T>>::deserialize(deserializer)?
-        .map(StringOrAnything::eval::<D>)
+        .map(StringOrAnything::expand_deserialize::<D>)
         .transpose()
 }
 
