@@ -4,29 +4,31 @@ use std::process::Command;
 use crate::command::check_run;
 use crate::error::Result;
 
-pub struct LogicalVolume {
-    pub path: PathBuf,
+pub struct LogicalVolume<P> {
+    pub path: P,
 }
 
-impl LogicalVolume {
-    pub fn from_path<P: AsRef<Path>>(path: P) -> Self {
-        Self {
-            path: path.as_ref().to_path_buf(),
-        }
+impl<P> LogicalVolume<P> {
+    pub fn from_path(path: P) -> Self {
+        Self { path }
     }
+}
 
+impl<P: AsRef<Path>> LogicalVolume<P> {
     pub fn exists(&self) -> bool {
-        self.path.exists()
+        self.path.as_ref().exists()
     }
 
-    pub fn with_name(&self, name: &str) -> Self {
-        Self {
-            path: self.path.with_file_name(name),
-        }
+    pub fn with_name(&self, name: &str) -> LogicalVolume<PathBuf> {
+        LogicalVolume::from_path(self.path.as_ref().with_file_name(name))
     }
 
     pub fn snapshot(&self, name: &str, size: &str) -> Result<()> {
-        log::info!("Creating snapshot {} of {}", name, self.path.display());
+        log::info!(
+            "Creating snapshot {} of {}",
+            name,
+            self.path.as_ref().display()
+        );
         let mut command = Command::new("lvcreate");
         command
             .arg("--quiet")
@@ -35,15 +37,18 @@ impl LogicalVolume {
             .arg(size)
             .arg("--name")
             .arg(name)
-            .arg(&self.path);
+            .arg(self.path.as_ref());
         check_run(command)
     }
 
     pub fn remove(&self) -> Result<()> {
         if self.exists() {
-            log::info!("Removing snapshot {}", self.path.display());
+            log::info!("Removing snapshot {}", self.path.as_ref().display());
             let mut command = Command::new("lvremove");
-            command.arg("--quiet").arg("--force").arg(&self.path);
+            command
+                .arg("--quiet")
+                .arg("--force")
+                .arg(self.path.as_ref());
             check_run(command)?;
         }
         Ok(())
