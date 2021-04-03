@@ -10,7 +10,7 @@ use crate::cli;
 use crate::config::{Config, ConfigMount};
 use crate::error::Result;
 use crate::lvm;
-use crate::mount;
+use crate::mount::{mount, unmount};
 
 fn create_toplevel_mountpoint(config: &Config) -> Result<()> {
     if config.mountpoint.create && !config.mountpoint.path.exists() {
@@ -34,8 +34,8 @@ fn remove_toplevel_mountpoint(config: &Config) -> Result<()> {
     Ok(())
 }
 
-fn mount_target(config: &Config, mount: &ConfigMount) -> PathBuf {
-    let target = match mount {
+fn get_mount_target(config: &Config, config_mount: &ConfigMount) -> PathBuf {
+    let target = match config_mount {
         ConfigMount::Bind { source, target } => target.as_ref().unwrap_or(source),
         ConfigMount::Lvm { target, .. } => target,
     };
@@ -45,43 +45,24 @@ fn mount_target(config: &Config, mount: &ConfigMount) -> PathBuf {
         .join(target.strip_prefix("/").unwrap_or(target))
 }
 
-fn handle_mount(config: &Config, mount: &ConfigMount) -> Result<()> {
-    let target = mount_target(config, mount);
-    match mount {
+fn create_snapshot(config_mount: &ConfigMount) -> Result<()> {
+    match config_mount {
         ConfigMount::Lvm {
             source, snapshot, ..
         } => {
-            // Create the LV snapshot.
             let source_lv = lvm::LogicalVolume::from_path(source);
             source_lv.snapshot(&snapshot.lv_name, &snapshot.size)?;
-            // Mount it.
-            let target_lv = source_lv.with_name(&snapshot.lv_name);
-            mount::mount_ro(&target_lv.path, &target)?;
         }
-        ConfigMount::Bind { source, .. } => {
-            // Bind mount.
-            mount::mount_bind(source, &target)?;
-        }
+        ConfigMount::Bind { .. } => {}
     }
     Ok(())
 }
 
-fn command_mount(config: &Config) -> Result<()> {
-    create_toplevel_mountpoint(config)?;
-    for mount in config.mounts.iter() {
-        handle_mount(config, mount)?;
-    }
-    Ok(())
-}
-
-fn handle_unmount(config: &Config, mount: &ConfigMount) -> Result<()> {
-    let target = mount_target(config, mount);
-    mount::unmount(&target)?;
-    match mount {
+fn remove_snapshot(config_mount: &ConfigMount) -> Result<()> {
+    match config_mount {
         ConfigMount::Lvm {
             source, snapshot, ..
         } => {
-            // Remove the LV snapshot.
             let target_lv = lvm::LogicalVolume::from_path(source).with_name(&snapshot.lv_name);
             target_lv.remove()?;
         }
@@ -90,9 +71,37 @@ fn handle_unmount(config: &Config, mount: &ConfigMount) -> Result<()> {
     Ok(())
 }
 
+fn create_mount(config: &Config, config_mount: &ConfigMount) -> Result<()> {
+    let target = get_mount_target(config, config_mount);
+    match config_mount {
+        ConfigMount::Lvm {
+            source, snapshot, ..
+        } => {
+            let target_lv = lvm::LogicalVolume::from_path(source).with_name(&snapshot.lv_name);
+            mount(&target_lv.path, &target, false)?;
+        }
+        ConfigMount::Bind { source, .. } => {
+            mount(source, &target, true)?;
+        }
+    }
+    Ok(())
+}
+
+fn command_mount(config: &Config) -> Result<()> {
+    create_toplevel_mountpoint(config)?;
+    for mount in config.mounts.iter() {
+        create_snapshot(mount)?;
+    }
+    for mount in config.mounts.iter() {
+        create_mount(config, mount)?;
+    }
+    Ok(())
+}
+
 fn command_unmount(config: &Config) -> Result<()> {
+    unmount(&config.mountpoint.path, true)?;
     for mount in config.mounts.iter().rev() {
-        handle_unmount(config, mount)?;
+        remove_snapshot(mount)?;
     }
     remove_toplevel_mountpoint(config)?;
     Ok(())
