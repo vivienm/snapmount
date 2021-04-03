@@ -25,39 +25,70 @@ pub fn is_mount<P: AsRef<Path>>(dir: P) -> io::Result<bool> {
     })
 }
 
-pub fn mount<P: AsRef<Path>>(source: P, target: P, bind: bool) -> Result<()> {
-    log::info!(
-        "{} {} to {}",
-        if bind { "Bind mounting" } else { "Mounting" },
-        source.as_ref().display(),
-        target.as_ref().display()
-    );
-    let mut command = Command::new("mount");
-    command
-        .arg("-o")
-        .arg(if bind { "bind,ro" } else { "ro" })
-        .arg(source.as_ref())
-        .arg(target.as_ref());
-    check_run(command)
+#[derive(Default)]
+pub struct Mounter {
+    bind: bool,
+    read_only: bool,
 }
 
-pub fn unmount<P: AsRef<Path>>(target: P, recursive: bool) -> Result<()> {
-    if target.as_ref().exists() && is_mount(&target)? {
+impl Mounter {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn bind(&mut self) -> &mut Self {
+        self.bind = true;
+        self
+    }
+
+    pub fn read_only(&mut self) -> &mut Self {
+        self.read_only = true;
+        self
+    }
+
+    pub fn mount<P: AsRef<Path>>(&self, source: P, target: P) -> Result<()> {
         log::info!(
-            "{} {}",
-            if recursive {
-                "Recursively unmounting"
-            } else {
-                "Unmounting"
-            },
+            "Mounting {} to {}",
+            source.as_ref().display(),
             target.as_ref().display()
         );
-        let mut command = Command::new("umount");
-        if recursive {
-            command.arg("--recursive");
+        let mut command = Command::new("mount");
+        if self.bind {
+            command.arg("--bind");
         }
-        command.arg(target.as_ref());
-        check_run(command)?;
+        if self.read_only {
+            command.arg("--read-only");
+        }
+        command.arg(source.as_ref()).arg(target.as_ref());
+        check_run(command)
     }
-    Ok(())
+}
+
+#[derive(Default)]
+pub struct Unmounter {
+    recursive: bool,
+}
+
+impl Unmounter {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn recursive(&mut self) -> &mut Self {
+        self.recursive = true;
+        self
+    }
+
+    pub fn unmount<P: AsRef<Path>>(&self, target: P) -> Result<()> {
+        if target.as_ref().exists() && is_mount(&target)? {
+            log::info!("Unmounting {}", target.as_ref().display());
+            let mut command = Command::new("umount");
+            if self.recursive {
+                command.arg("--recursive");
+            }
+            command.arg(target.as_ref());
+            check_run(command)?;
+        }
+        Ok(())
+    }
 }

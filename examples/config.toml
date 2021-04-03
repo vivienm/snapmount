@@ -26,4 +26,5 @@
 
 [[mounts]]
   type = "bind"
+  writable = true
   source = "/var/cache/restic"

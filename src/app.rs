@@ -10,7 +10,7 @@ use crate::cli;
 use crate::config::{Config, ConfigMount};
 use crate::error::Result;
 use crate::lvm;
-use crate::mount::{mount, unmount};
+use crate::mount::{Mounter, Unmounter};
 
 fn create_toplevel_mountpoint(config: &Config) -> Result<()> {
     if config.mountpoint.create && !config.mountpoint.path.exists() {
@@ -36,7 +36,7 @@ fn remove_toplevel_mountpoint(config: &Config) -> Result<()> {
 
 fn get_mount_target(config: &Config, config_mount: &ConfigMount) -> PathBuf {
     let target = match config_mount {
-        ConfigMount::Bind { source, target } => target.as_ref().unwrap_or(source),
+        ConfigMount::Bind { source, target, .. } => target.as_ref().unwrap_or(source),
         ConfigMount::Lvm { target, .. } => target,
     };
     config
@@ -78,10 +78,17 @@ fn create_mount(config: &Config, config_mount: &ConfigMount) -> Result<()> {
             source, snapshot, ..
         } => {
             let target_lv = lvm::LogicalVolume::from_path(source).with_name(&snapshot.lv_name);
-            mount(&target_lv.path, &target, false)?;
+            Mounter::new().read_only().mount(&target_lv.path, &target)?;
         }
-        ConfigMount::Bind { source, .. } => {
-            mount(source, &target, true)?;
+        ConfigMount::Bind {
+            source, writable, ..
+        } => {
+            let mut mounter = Mounter::new();
+            mounter.bind();
+            if !writable {
+                mounter.read_only();
+            }
+            mounter.mount(source, &target)?;
         }
     }
     Ok(())
@@ -100,7 +107,9 @@ fn command_mount(config: &Config) -> Result<()> {
 }
 
 fn command_unmount(config: &Config) -> Result<()> {
-    unmount(&config.mountpoint.path, true)?;
+    Unmounter::new()
+        .recursive()
+        .unmount(&config.mountpoint.path)?;
     for mount in config.mounts.iter().rev() {
         remove_snapshot(mount)?;
     }

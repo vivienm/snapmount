@@ -83,6 +83,8 @@ pub enum ConfigMount {
     Bind {
         #[serde(deserialize_with = "expand_env_vars")]
         source: PathBuf,
+        #[serde(default)]
+        writable: bool,
         #[serde(default, deserialize_with = "opt_expand_env_vars")]
         target: Option<PathBuf>,
     },
