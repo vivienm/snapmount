@@ -60,6 +60,10 @@ Snapmount reads a configuration file (by default `/etc/snapmount/config.toml`) t
   # Arbitrary directories may also be mounted with a simple bind mount.
   # This may come handy to backup data residing on non-LVM volumes.
   type = "bind"
+
+  # By default all mounts are read-only, but bind mounts can be set as writable.
+  #writable = false
+
   source = "/boot"
 
   # `target` defaults to `source` for bind mounts.
