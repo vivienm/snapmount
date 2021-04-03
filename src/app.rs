@@ -95,6 +95,7 @@ fn command_mount(config: &Config) -> Result<()> {
     for mount in config.mounts.iter() {
         create_mount(config, mount)?;
     }
+    log::info!("All done");
     Ok(())
 }
 
@@ -104,6 +105,7 @@ fn command_unmount(config: &Config) -> Result<()> {
         remove_snapshot(mount)?;
     }
     remove_toplevel_mountpoint(config)?;
+    log::info!("All done");
     Ok(())
 }
 
