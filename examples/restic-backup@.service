@@ -1,0 +1,21 @@
+[Unit]
+Description=Create a new Restic snapshot
+ConditionACPower=true
+StartLimitIntervalSec=10min
+StartLimitBurst=5
+
+[Service]
+Type=oneshot
+Environment=SNAPMOUNT_MOUNTPOINT=/var/run/snapmount/%i
+Environment=SNAPMOUNT_LV_SUFFIX=.snapmount.%i
+Environment=RESTIC_CACHE_DIR=/var/cache/restic
+EnvironmentFile=/etc/conf.d/restic/%i
+ExecStartPre=/usr/bin/mkdir -p /var/run/snapmount
+ExecStartPre=/usr/local/bin/snapmount unmount
+ExecStartPre=/usr/local/bin/snapmount mount
+ExecStart=/usr/bin/arch-chroot $SNAPMOUNT_MOUNTPOINT /usr/bin/env -C $RESTIC_BASE_DIR -- /usr/bin/restic backup $RESTIC_BACKUP_ARGS
+ExecStopPost=/usr/bin/sync
+ExecStopPost=/usr/local/bin/snapmount unmount
+Restart=on-failure
+RestartSec=2min
+RestartPreventExitStatus=3

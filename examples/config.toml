@@ -1,5 +1,5 @@
 [mountpoint]
-  path = "/var/run/snapmount/mount"
+  path = "${SNAPMOUNT_MOUNTPOINT}"
   create = true
 
 [[mounts]]
@@ -7,14 +7,14 @@
   source = "/dev/arch_main/root"
   target = "/"
   [mounts.snapshot]
-    lv_name = "root${SNAPMOUNT_LV_SUFFIX:-.snapmount}"
+    lv_name = "root${SNAPMOUNT_LV_SUFFIX}"
 
 [[mounts]]
   type = "lvm"
   source = "/dev/arch_main/home"
   target = "/home"
   [mounts.snapshot]
-    lv_name = "home${SNAPMOUNT_LV_SUFFIX:-.snapmount}"
+    lv_name = "home${SNAPMOUNT_LV_SUFFIX}"
 
 [[mounts]]
   type = "bind"
@@ -27,4 +27,4 @@
 [[mounts]]
   type = "bind"
   writable = true
-  source = "/var/cache/restic"
+  source = "${RESTIC_CACHE_DIR}"
