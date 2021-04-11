@@ -19,97 +19,71 @@ $ cargo install --git https://github.com/vivienm/snapmount.git
 Snapmount reads a configuration file (by default `/etc/snapmount/config.toml`) that describes the filesystems to be snapshotted and mounted.
 
 ```toml
-[mountpoint]
-  # Toplevel mount directory.
-  # All mountpoints will be mounted under this location.
-  path = "/var/run/snapmount"
-
-  # If true, the toplevel root directory is created/deleted by Snapmount.
-  # Defaults to false.
-  create = true
-
-# The list of filesystems to be snapshotted and mounted,
-# given in the right order for mounting them.
-[[mounts]]
+# The list of LVM snapshots to create.
+[[snapshots]]
   type = "lvm"
   source = "/dev/mapper/lvm-root"
 
-  # Mount directory, relative to `mountpoint.path`.
-  # In this example, the snapshout will be mounted at `/var/run/snapmount`.
+  # Snaphot LV name (LV path will be `/dev/mapper/lvm-root`).
+  name = "root-snap"
+
+  # Size of the LVM snapshot. Defaults to 1G.
+  size = "2G"
+
+
+# The list of filesystems to be mounted, given in mounting order.
+[[mounts]]
+  source = "/dev/mapper/lvm-root-snap"
+
+  # Mount directory, relative to the toplevel mount directory.
   target = "/"
 
-  # LVM snapshotting settings.
-  [mounts.snapshot]
-    # Name of the LVM snapshot to be created.
-    lv_name = "lvm-root-snapmount"
-
-    # Size of the LVM snapshot. Defaults to 1G.
-    #size = "1G"
 
 [[mounts]]
-  type = "lvm"
-  source = "/dev/mapper/lvm-home"
-
-  # Will be mounted at `/var/run/snapmount/home`.
-  target = "/home"
-  [mounts.snapshot]
-    lv_name = "lvm-home-snapmount"
-    size = "2G"
-
-[[mounts]]
-  # Arbitrary directories may also be mounted with a simple bind mount.
-  # This may come handy to backup data residing on non-LVM volumes.
-  type = "bind"
-
-  # By default all mounts are read-only, but bind mounts can be set as writable.
-  #writable = false
-
   source = "/boot"
 
-  # `target` defaults to `source` for bind mounts.
-  # This directory will be mounted at `/var/run/snapmount/boot`.
+  # By default, `target` is the same as `source`,
+  # so this one will be mounted to `$MOUNT_DIR/boot`.
   #target = "/boot"
-```
 
-It is possible to use environment variables to populate values inside the configuration file:
-
-```toml
-[mountpoint]
-  path = "${MOUNT_DIR:-/var/run/snapmount}"
+  # Mount options.
+  options = ["bind", "ro"]
 
 [[mounts]]
-  type = "lvm"
-  source = "/dev/mapper/lvm-root"
-  target = "/"
-  [mounts.snapshot]
-    lv_name = "lvm-root-snapmount-${BACKUP_PROFILE}"
+  # Mount type.
+  type = "efivarfs"
+  source = "/sys/firmware/efi/efivars"
+  options = ["nosuid", "noexec", "nodev"]
+
+  # Mount this entry if and only if `source` exists.
+  # Here, this allows using the same configuration file
+  # with both BIOS and EFI boot loaders.
+  if_exists = true
 ```
 
-An example configuration file is given in [`examples/config.toml`](examples/config.toml).
+An advanced example of configuration file is given in [`examples/config.toml`](examples/config.toml).
 
 ## Usage
 
-The command `snapmount mount` will create the snapshots and mount them in the location defined in the configuration file (here, `/var/run/snapmount`).
+The command `snapmount mount <TARGET_DIR>` will create the snapshots and mount all entries defined in the configuration file.
 
 ```console
-$ sudo snapmount mount
-[INFO ] Creating toplevel mount directory /var/run/snapmount
-[INFO ] Creating snapshot lvm-root-snapmount of /dev/mapper/lvm-root
-[INFO ] Mounting /dev/mapper/lvm-root-snapmount to /var/run/snapmount/
-[INFO ] Creating snapshot lvm-home-snapmount of /dev/mapper/lvm-home
-[INFO ] Mounting /dev/mapper/lvm-home-snapmount to /var/run/snapmount/home
-[INFO ] Bind mounting /boot to /var/run/snapmount/boot
+$ sudo snapmount mount /mnt
+[INFO ] Creating snapshot lvm-root-snap of /dev/mapper/lvm-root
+[INFO ] Mounting /dev/mapper/lvm-root-snap to /mnt
+[INFO ] Mounting /boot to /mnt/boot
+[INFO ] Mounting /sys/firmware/efi/efivars to /mnt/sys/firmware/efi/efivars
 ```
 
-You can then run your backup program on the frozen rootfs `/var/run/snapmount`.
-Once this is done, run `snapmount unmount` to unmount and delete all backup snapshots:
+You can then run your backup program on the frozen rootfs `/mnt`.
+Once this is done, run `snapmount unmount /mnt` to unmount everything and delete backup snapshots:
 
 ```console
-$ sudo snapmount unmount
-[INFO ] Unmounting /var/run/snapmount/boot
-[INFO ] Unmounting /var/run/snapmount/home
-[INFO ] Removing snapshot /dev/mapper/lvm-home-snapmount
-[INFO ] Unmounting /var/run/snapmount
-[INFO ] Removing snapshot /dev/mapper/lvm-root-snapmount
-[INFO ] Removing toplevel mount directory /var/run/snapmount
+$ sudo snapmount unmount /mnt
+[INFO ] Unmounting /mnt/sys/firmware/efi/efivars
+[INFO ] Unmounting /mnt/boot
+[INFO ] Unmounting /mnt
+[INFO ] Removing snapshot /dev/mapper/lvm-root-mnt
 ```
+
+Run `snapmount --help` to list all options and commands.

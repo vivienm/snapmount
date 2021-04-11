@@ -1,119 +1,93 @@
 use std::fs;
 use std::io;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use structopt::clap::crate_name;
 use structopt::clap::Shell;
 use structopt::StructOpt;
 
 use crate::cli;
-use crate::config::{Config, ConfigMount};
+use crate::config::{Config, ConfigMount, ConfigSnapshot};
 use crate::error::Result;
 use crate::lvm;
-use crate::mount::{Mounter, Unmounter};
+use crate::mount::{mount, unmount};
 
-fn create_toplevel_mountpoint(config: &Config) -> Result<()> {
-    if config.mountpoint.create && !config.mountpoint.path.exists() {
-        log::info!(
-            "Creating toplevel mount directory {}",
-            config.mountpoint.path.display()
-        );
-        fs::create_dir(&config.mountpoint.path)?;
-    }
-    Ok(())
-}
-
-fn remove_toplevel_mountpoint(config: &Config) -> Result<()> {
-    if config.mountpoint.create && config.mountpoint.path.exists() {
-        log::info!(
-            "Removing toplevel mount directory {}",
-            config.mountpoint.path.display()
-        );
-        fs::remove_dir(&config.mountpoint.path)?;
-    }
-    Ok(())
-}
-
-fn get_mount_target(config: &Config, config_mount: &ConfigMount) -> PathBuf {
-    let target = match config_mount {
-        ConfigMount::Bind { source, target, .. } => target.as_ref().unwrap_or(source),
-        ConfigMount::Lvm { target, .. } => target,
-    };
-    config
-        .mountpoint
-        .path
-        .join(target.strip_prefix("/").unwrap_or(target))
-}
-
-fn create_snapshot(config_mount: &ConfigMount) -> Result<()> {
-    match config_mount {
-        ConfigMount::Lvm {
-            source, snapshot, ..
-        } => {
+fn create_snapshot(config_snap: &ConfigSnapshot) -> Result<()> {
+    match config_snap {
+        ConfigSnapshot::Lvm { source, name, size } => {
             let source_lv = lvm::LogicalVolume::from_path(source);
-            source_lv.snapshot(&snapshot.lv_name, &snapshot.size)?;
+            source_lv.snapshot(name, size)?;
         }
-        ConfigMount::Bind { .. } => {}
     }
     Ok(())
 }
 
-fn remove_snapshot(config_mount: &ConfigMount) -> Result<()> {
-    match config_mount {
-        ConfigMount::Lvm {
-            source, snapshot, ..
-        } => {
-            let target_lv = lvm::LogicalVolume::from_path(source).with_name(&snapshot.lv_name);
+fn remove_snapshot(config_snap: &ConfigSnapshot) -> Result<()> {
+    match config_snap {
+        ConfigSnapshot::Lvm { source, name, .. } => {
+            let target_lv = lvm::LogicalVolume::from_path(source).with_name(name);
             target_lv.remove()?;
         }
-        ConfigMount::Bind { .. } => {}
     }
     Ok(())
 }
 
-fn create_mount(config: &Config, config_mount: &ConfigMount) -> Result<()> {
-    let target = get_mount_target(config, config_mount);
-    match config_mount {
-        ConfigMount::Lvm {
-            source, snapshot, ..
-        } => {
-            let target_lv = lvm::LogicalVolume::from_path(source).with_name(&snapshot.lv_name);
-            Mounter::new().read_only().mount(&target_lv.path, &target)?;
-        }
-        ConfigMount::Bind {
-            source, writable, ..
-        } => {
-            let mut mounter = Mounter::new();
-            mounter.bind();
-            if !writable {
-                mounter.read_only();
-            }
-            mounter.mount(source, &target)?;
-        }
-    }
-    Ok(())
+fn get_mount_target<P>(toplevel: P, config_mount: &ConfigMount) -> PathBuf
+where
+    P: AsRef<Path>,
+{
+    let target = config_mount.target.as_ref().unwrap_or(&config_mount.source);
+    toplevel
+        .as_ref()
+        .join(target.strip_prefix("/").unwrap_or(&target))
 }
 
-fn command_mount(config: &Config) -> Result<()> {
-    create_toplevel_mountpoint(config)?;
-    for mount in config.mounts.iter() {
-        create_snapshot(mount)?;
+fn create_mount<P>(toplevel: P, config_mount: &ConfigMount) -> Result<()>
+where
+    P: AsRef<Path>,
+{
+    if config_mount.if_exists && !config_mount.source.exists() {
+        log::info!(
+            "Skipping mount: {} does not exist",
+            &config_mount.source.display()
+        );
+        return Ok(());
     }
-    for mount in config.mounts.iter() {
-        create_mount(config, mount)?;
+    let target = get_mount_target(toplevel, config_mount);
+    mount(
+        &config_mount.source,
+        &target,
+        config_mount.type_.as_deref(),
+        &config_mount.options,
+    )
+}
+
+fn remove_mount<P>(toplevel: P, config_mount: &ConfigMount) -> Result<()>
+where
+    P: AsRef<Path>,
+{
+    let target = get_mount_target(toplevel, config_mount);
+    unmount(target)
+}
+
+fn command_mount(toplevel: &Path, config: &Config) -> Result<()> {
+    for config_snap in config.snapshots.iter() {
+        create_snapshot(config_snap)?;
+    }
+    for config_mount in config.mounts.iter() {
+        create_mount(toplevel, config_mount)?;
     }
     log::info!("All done");
     Ok(())
 }
 
-fn command_unmount(config: &Config) -> Result<()> {
-    Unmounter::new()
-        .recursive()
-        .unmount(&config.mountpoint.path)?;
-    for mount in config.mounts.iter().rev() {
-        remove_snapshot(mount)?;
+fn command_unmount(toplevel: &Path, config: &Config) -> Result<()> {
+    for config_mount in config.mounts.iter().rev() {
+        remove_mount(toplevel, config_mount)?;
     }
-    remove_toplevel_mountpoint(config)?;
+    for config_snap in config.snapshots.iter().rev() {
+        remove_snapshot(config_snap)?;
+    }
     log::info!("All done");
     Ok(())
 }
@@ -146,9 +120,9 @@ pub fn main(args: &cli::Args) -> Result<()> {
         Config::load(config_file)?
     };
 
-    match args.command {
-        cli::ArgsCommand::Mount => command_mount(&config),
-        cli::ArgsCommand::Unmount => command_unmount(&config),
+    match &args.command {
+        cli::ArgsCommand::Mount { target } => command_mount(target, &config),
+        cli::ArgsCommand::Unmount { target } => command_unmount(target, &config),
         cli::ArgsCommand::Config => command_config(&config),
         cli::ArgsCommand::Completion { .. } => unreachable!(),
     }

@@ -6,10 +6,16 @@ use structopt::StructOpt;
 #[derive(StructOpt)]
 pub enum ArgsCommand {
     /// Creates and mounts backup snapshots
-    Mount,
+    Mount {
+        #[structopt(parse(from_os_str))]
+        target: PathBuf,
+    },
     /// Unmounts and removes backup snapshots
     #[structopt(alias = "umount")]
-    Unmount,
+    Unmount {
+        #[structopt(parse(from_os_str))]
+        target: PathBuf,
+    },
     /// Dumps the configuration
     Config,
     /// Generates a completion script

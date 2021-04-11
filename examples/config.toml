@@ -1,30 +1,76 @@
-[mountpoint]
-  path = "${SNAPMOUNT_MOUNTPOINT}"
-  create = true
-
-[[mounts]]
+[[snapshots]]
   type = "lvm"
   source = "/dev/arch_main/root"
-  target = "/"
-  [mounts.snapshot]
-    lv_name = "root${SNAPMOUNT_LV_SUFFIX}"
+  name = "root.snapmount"
 
-[[mounts]]
+[[snapshots]]
   type = "lvm"
   source = "/dev/arch_main/home"
+  name = "home.snapmount"
+
+[[mounts]]
+  source = "/dev/arch_main/root.snapmount"
+  target = "/"
+  options = ["ro"]
+
+[[mounts]]
+  source = "/dev/arch_main/home.snapmount"
   target = "/home"
-  [mounts.snapshot]
-    lv_name = "home${SNAPMOUNT_LV_SUFFIX}"
+  options = ["ro"]
 
 [[mounts]]
-  type = "bind"
   source = "/boot"
+  options = ["bind", "ro"]
 
 [[mounts]]
-  type = "bind"
   source = "/boot/efi"
+  options = ["bind", "ro"]
+  if_exists = true
 
 [[mounts]]
-  type = "bind"
-  writable = true
-  source = "${RESTIC_CACHE_DIR}"
+  source = "/var/cache/restic"
+  options = ["bind"]
+
+[[mounts]]
+  type = "proc"
+  source = "/proc"
+  options = ["nosuid", "noexec", "nodev"]
+
+[[mounts]]
+  type = "sysfs"
+  source = "/sys"
+  options = ["nosuid", "noexec", "nodev", "ro"]
+
+[[mounts]]
+  type = "efivarfs"
+  source = "/sys/firmware/efi/efivars"
+  options = ["nosuid", "noexec", "nodev"]
+  if_exists = true
+
+[[mounts]]
+  type = "devtmpfs"
+  source = "/dev"
+  options = ["mode=0755", "nosuid"]
+
+[[mounts]]
+  type = "devpts"
+  source = "/dev/pts"
+  options = ["mode=0620", "gid=5", "nosuid", "noexec"]
+
+[[mounts]]
+  type = "tmpfs"
+  source = "/dev/shm"
+  options = ["mode=1777", "nosuid", "nodev"]
+
+[[mounts]]
+  source = "/run"
+  options = ["bind"]
+
+[[mounts]]
+  type = "tmpfs"
+  source = "/tmp"
+  options = ["mode=1777", "strictatime", "nodev", "nosuid"]
+
+[[mounts]]
+  source = "/etc/resolv.conf"
+  options = ["bind", "ro"]

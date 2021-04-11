@@ -7,7 +7,10 @@ use std::process::Command;
 use crate::command::check_run;
 use crate::error::Result;
 
-pub fn is_mount<P: AsRef<Path>>(dir: P) -> io::Result<bool> {
+pub fn is_mount<P>(dir: P) -> io::Result<bool>
+where
+    P: AsRef<Path>,
+{
     let dir_meta = fs::metadata(&dir)?;
     let file_type = dir_meta.file_type();
 
@@ -25,70 +28,38 @@ pub fn is_mount<P: AsRef<Path>>(dir: P) -> io::Result<bool> {
     })
 }
 
-#[derive(Default)]
-pub struct Mounter {
-    bind: bool,
-    read_only: bool,
+pub fn mount<P>(source: P, target: P, type_: Option<&str>, options: &[String]) -> Result<()>
+where
+    P: AsRef<Path>,
+{
+    log::info!(
+        "Mounting {} to {}",
+        source.as_ref().display(),
+        target.as_ref().display()
+    );
+    let mut command = Command::new("mount");
+    if let Some(type_) = type_ {
+        command.arg("--type");
+        command.arg(type_);
+    }
+    if !options.is_empty() {
+        command.arg("--options");
+        command.arg(options.join(","));
+    }
+    command.arg(source.as_ref());
+    command.arg(target.as_ref());
+    check_run(command)
 }
 
-impl Mounter {
-    pub fn new() -> Self {
-        Self::default()
+pub fn unmount<P>(target: P) -> Result<()>
+where
+    P: AsRef<Path>,
+{
+    if target.as_ref().exists() && is_mount(&target)? {
+        log::info!("Unmounting {}", target.as_ref().display());
+        let mut command = Command::new("umount");
+        command.arg(target.as_ref());
+        check_run(command)?;
     }
-
-    pub fn bind(&mut self) -> &mut Self {
-        self.bind = true;
-        self
-    }
-
-    pub fn read_only(&mut self) -> &mut Self {
-        self.read_only = true;
-        self
-    }
-
-    pub fn mount<P: AsRef<Path>>(&self, source: P, target: P) -> Result<()> {
-        log::info!(
-            "Mounting {} to {}",
-            source.as_ref().display(),
-            target.as_ref().display()
-        );
-        let mut command = Command::new("mount");
-        if self.bind {
-            command.arg("--bind");
-        }
-        if self.read_only {
-            command.arg("--read-only");
-        }
-        command.arg(source.as_ref()).arg(target.as_ref());
-        check_run(command)
-    }
-}
-
-#[derive(Default)]
-pub struct Unmounter {
-    recursive: bool,
-}
-
-impl Unmounter {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn recursive(&mut self) -> &mut Self {
-        self.recursive = true;
-        self
-    }
-
-    pub fn unmount<P: AsRef<Path>>(&self, target: P) -> Result<()> {
-        if target.as_ref().exists() && is_mount(&target)? {
-            log::info!("Unmounting {}", target.as_ref().display());
-            let mut command = Command::new("umount");
-            if self.recursive {
-                command.arg("--recursive");
-            }
-            command.arg(target.as_ref());
-            check_run(command)?;
-        }
-        Ok(())
-    }
+    Ok(())
 }
