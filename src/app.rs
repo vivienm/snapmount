@@ -75,35 +75,33 @@ where
     unmount(target)
 }
 
-fn command_mount(toplevel: &Path, config: &Config) -> Result<()> {
+fn mount_all(toplevel: &Path, config: &Config) -> Result<()> {
     for config_snap in config.snapshots.iter() {
         create_snapshot(config_snap)?;
     }
     for config_mount in config.mounts.iter() {
         create_mount(toplevel, config_mount)?;
     }
-    log_done();
     Ok(())
 }
 
-fn command_unmount(toplevel: &Path, config: &Config) -> Result<()> {
+fn unmount_all(toplevel: &Path, config: &Config) -> Result<()> {
     for config_mount in config.mounts.iter().rev() {
         remove_mount(toplevel, config_mount)?;
     }
     for config_snap in config.snapshots.iter().rev() {
         remove_snapshot(config_snap)?;
     }
-    log_done();
     Ok(())
 }
 
-fn command_config(config: &Config) -> Result<()> {
+fn dump_config(config: &Config) -> Result<()> {
     let stdout = io::stdout();
     config.dump(stdout)?;
     Ok(())
 }
 
-fn command_completion(shell: &Shell) {
+fn dump_completion(shell: &Shell) {
     cli::Args::clap().gen_completions_to(crate_name!(), *shell, &mut io::stdout());
 }
 
@@ -114,7 +112,7 @@ fn log_done() {
 
 pub fn main(args: &cli::Args) -> Result<()> {
     if let cli::ArgsCommand::Completion { shell } = args.command {
-        command_completion(&shell);
+        dump_completion(&shell);
         return Ok(());
     }
 
@@ -131,9 +129,23 @@ pub fn main(args: &cli::Args) -> Result<()> {
     };
 
     match &args.command {
-        cli::ArgsCommand::Mount { target } => command_mount(target, &config),
-        cli::ArgsCommand::Unmount { target } => command_unmount(target, &config),
-        cli::ArgsCommand::Config => command_config(&config),
+        cli::ArgsCommand::Mount {
+            unmount_before,
+            target,
+        } => {
+            if *unmount_before {
+                unmount_all(target, &config)?;
+            }
+            mount_all(target, &config)?;
+            log_done();
+            Ok(())
+        }
+        cli::ArgsCommand::Unmount { target } => {
+            unmount_all(target, &config)?;
+            log_done();
+            Ok(())
+        }
+        cli::ArgsCommand::Config => dump_config(&config),
         cli::ArgsCommand::Completion { .. } => unreachable!(),
     }
 }

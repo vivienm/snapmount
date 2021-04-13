@@ -7,6 +7,9 @@ use structopt::StructOpt;
 pub enum ArgsCommand {
     /// Creates and mounts backup snapshots
     Mount {
+        /// Unmounts and removes existing backup snapshots first
+        #[structopt(short = "u", long = "unmount-before", alias = "umount-before")]
+        unmount_before: bool,
         #[structopt(parse(from_os_str))]
         target: PathBuf,
     },
