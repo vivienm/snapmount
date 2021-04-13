@@ -1,6 +1,6 @@
 use std::fs;
 use std::io;
-use std::path::{Path, PathBuf};
+use std::path::{self, Path, PathBuf};
 
 use structopt::clap::crate_name;
 use structopt::clap::Shell;
@@ -36,10 +36,15 @@ fn get_mount_target<P>(toplevel: P, config_mount: &ConfigMount) -> PathBuf
 where
     P: AsRef<Path>,
 {
+    let root_dir: &Path = path::Component::RootDir.as_ref();
     let target = config_mount.target.as_ref().unwrap_or(&config_mount.source);
-    toplevel
-        .as_ref()
-        .join(target.strip_prefix("/").unwrap_or(&target))
+    if target == root_dir {
+        toplevel.as_ref().to_path_buf()
+    } else {
+        toplevel
+            .as_ref()
+            .join(target.strip_prefix(root_dir).unwrap_or(&target))
+    }
 }
 
 fn create_mount<P>(toplevel: P, config_mount: &ConfigMount) -> Result<()>
