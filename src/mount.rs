@@ -1,8 +1,9 @@
-use std::fs;
 use std::io;
 use std::os::linux::fs::MetadataExt;
 use std::path::Path;
 use std::process::Command;
+
+use fs_err as fs;
 
 use crate::command::check_run;
 use crate::error::Result;

@@ -1,8 +1,8 @@
-use std::fs;
 use std::io;
 use std::path::{self, Path, PathBuf};
 use std::process;
 
+use fs_err as fs;
 use structopt::clap::crate_name;
 use structopt::StructOpt;
 
@@ -20,7 +20,7 @@ where
         "Loading configuration file {}",
         config_path.as_ref().display()
     );
-    let config_file = fs::File::open(&config_path)?;
+    let config_file = fs::File::open(config_path.as_ref())?;
     Config::load(config_file)
 }
 
