@@ -1,9 +1,9 @@
 use std::fs;
 use std::io;
 use std::path::{self, Path, PathBuf};
+use std::process;
 
 use structopt::clap::crate_name;
-use structopt::clap::Shell;
 use structopt::StructOpt;
 
 use crate::cli;
@@ -11,6 +11,18 @@ use crate::config::{Config, ConfigMount, ConfigSnapshot};
 use crate::error::Result;
 use crate::lvm;
 use crate::mount::{mount, unmount};
+
+fn load_config<P>(config_path: P) -> Result<Config>
+where
+    P: AsRef<Path>,
+{
+    log::debug!(
+        "Loading configuration file {}",
+        config_path.as_ref().display()
+    );
+    let config_file = fs::File::open(&config_path)?;
+    Config::load(config_file)
+}
 
 fn create_snapshot(config_snap: &ConfigSnapshot) -> Result<()> {
     match config_snap {
@@ -95,57 +107,85 @@ fn unmount_all(toplevel: &Path, config: &Config) -> Result<()> {
     Ok(())
 }
 
-fn dump_config(config: &Config) -> Result<()> {
-    let stdout = io::stdout();
-    config.dump(stdout)?;
-    Ok(())
-}
-
-fn dump_completion(shell: &Shell) {
-    cli::Args::clap().gen_completions_to(crate_name!(), *shell, &mut io::stdout());
-}
-
 #[inline]
 fn log_done() {
     log::info!("All done");
 }
 
-pub fn main(args: &cli::Args) -> Result<()> {
-    if let cli::ArgsCommand::Completion { shell } = args.command {
-        dump_completion(&shell);
-        return Ok(());
-    }
+trait CliCommand {
+    fn run(&self, config_path: &Path) -> Result<()>;
+}
 
+impl CliCommand for cli::ArgsCommandMount {
+    fn run(&self, config_path: &Path) -> Result<()> {
+        let config = load_config(config_path)?;
+        if self.unmount_before {
+            unmount_all(&self.target, &config)?;
+        }
+        mount_all(&self.target, &config)?;
+        log_done();
+        Ok(())
+    }
+}
+
+impl CliCommand for cli::ArgsCommandUnmount {
+    fn run(&self, config_path: &Path) -> Result<()> {
+        let config = load_config(config_path)?;
+        unmount_all(&self.target, &config)?;
+        log_done();
+        Ok(())
+    }
+}
+
+impl CliCommand for cli::ArgsCommandRun {
+    fn run(&self, config_path: &Path) -> Result<()> {
+        let config = load_config(config_path)?;
+        if self.unmount_before {
+            unmount_all(&self.target, &config)?;
+        }
+        mount_all(&self.target, &config)?;
+        let mut command = process::Command::new(&self.program);
+        command.args(&self.args);
+        let status = crate::command::run(&mut command)?;
+        unmount_all(&self.target, &config)?;
+        log_done();
+        process::exit(status.code().unwrap_or_default())
+    }
+}
+
+impl CliCommand for cli::ArgsCommandConfig {
+    fn run(&self, config_path: &Path) -> Result<()> {
+        let config = load_config(config_path)?;
+        let stdout = io::stdout();
+        config.dump(stdout)?;
+        Ok(())
+    }
+}
+
+impl CliCommand for cli::ArgsCommandCompletion {
+    fn run(&self, _config_path: &Path) -> Result<()> {
+        cli::Args::clap().gen_completions_to(crate_name!(), self.shell, &mut io::stdout());
+        Ok(())
+    }
+}
+
+impl CliCommand for cli::ArgsCommand {
+    fn run(&self, config_path: &Path) -> Result<()> {
+        match self {
+            cli::ArgsCommand::Mount(cmd) => cmd.run(config_path),
+            cli::ArgsCommand::Unmount(cmd) => cmd.run(config_path),
+            cli::ArgsCommand::Run(cmd) => cmd.run(config_path),
+            cli::ArgsCommand::Config(cmd) => cmd.run(config_path),
+            cli::ArgsCommand::Completion(cmd) => cmd.run(config_path),
+        }
+    }
+}
+
+pub fn main(args: &cli::Args) -> Result<()> {
     env_logger::Builder::new()
         .format_module_path(false)
         .format_timestamp(None)
         .filter_level(args.log_level)
         .init();
-
-    log::debug!("Loading configuration file {}", args.config_path.display());
-    let config = {
-        let config_file = fs::File::open(&args.config_path)?;
-        Config::load(config_file)?
-    };
-
-    match &args.command {
-        cli::ArgsCommand::Mount {
-            unmount_before,
-            target,
-        } => {
-            if *unmount_before {
-                unmount_all(target, &config)?;
-            }
-            mount_all(target, &config)?;
-            log_done();
-            Ok(())
-        }
-        cli::ArgsCommand::Unmount { target } => {
-            unmount_all(target, &config)?;
-            log_done();
-            Ok(())
-        }
-        cli::ArgsCommand::Config => dump_config(&config),
-        cli::ArgsCommand::Completion { .. } => unreachable!(),
-    }
+    args.command.run(&args.config_path)
 }

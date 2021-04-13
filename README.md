@@ -86,4 +86,6 @@ $ sudo snapmount unmount /mnt
 [INFO ] Removing snapshot /dev/mapper/lvm-root-mnt
 ```
 
+These steps may be wrapped in a unique command `snapmount run /mnt <BACKUP_PROGRAM>`.
+
 Run `snapmount --help` to list all options and commands.

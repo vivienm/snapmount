@@ -1,32 +1,65 @@
+use std::ffi::OsString;
 use std::path::PathBuf;
 
 use structopt::clap::Shell;
 use structopt::StructOpt;
 
 #[derive(StructOpt)]
+pub struct ArgsCommandMount {
+    /// Unmounts and removes existing backup snapshots first
+    #[structopt(short = "u", long = "unmount-before", alias = "umount-before")]
+    pub unmount_before: bool,
+    /// Toplevel mount directory
+    #[structopt(parse(from_os_str))]
+    pub target: PathBuf,
+}
+
+#[derive(StructOpt)]
+pub struct ArgsCommandUnmount {
+    /// Toplevel mount directory
+    #[structopt(parse(from_os_str))]
+    pub target: PathBuf,
+}
+
+#[derive(StructOpt)]
+pub struct ArgsCommandRun {
+    /// Unmounts and removes existing backup snapshots first
+    #[structopt(short = "u", long = "unmount-before", alias = "umount-before")]
+    pub unmount_before: bool,
+    /// Toplevel mount directory
+    #[structopt(parse(from_os_str))]
+    pub target: PathBuf,
+    /// Program to be lauched
+    #[structopt(parse(from_os_str))]
+    pub program: OsString,
+    #[structopt(parse(from_os_str))]
+    /// Arguments to pass to the program
+    pub args: Vec<OsString>,
+}
+
+#[derive(StructOpt)]
+pub struct ArgsCommandConfig {}
+
+#[derive(StructOpt)]
+pub struct ArgsCommandCompletion {
+    /// Shell to produce a completion file for
+    #[structopt(possible_values = &Shell::variants())]
+    pub shell: Shell,
+}
+
+#[derive(StructOpt)]
 pub enum ArgsCommand {
     /// Creates and mounts backup snapshots
-    Mount {
-        /// Unmounts and removes existing backup snapshots first
-        #[structopt(short = "u", long = "unmount-before", alias = "umount-before")]
-        unmount_before: bool,
-        #[structopt(parse(from_os_str))]
-        target: PathBuf,
-    },
+    Mount(ArgsCommandMount),
     /// Unmounts and removes backup snapshots
     #[structopt(alias = "umount")]
-    Unmount {
-        #[structopt(parse(from_os_str))]
-        target: PathBuf,
-    },
+    Unmount(ArgsCommandUnmount),
+    /// Run an arbitrary command
+    Run(ArgsCommandRun),
     /// Dumps the configuration
-    Config,
+    Config(ArgsCommandConfig),
     /// Generates a completion script
-    Completion {
-        /// Shell to produce a completion file for
-        #[structopt(possible_values = &Shell::variants())]
-        shell: Shell,
-    },
+    Completion(ArgsCommandCompletion),
 }
 
 /// Create and mount backup snapshots
