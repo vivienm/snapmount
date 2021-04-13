@@ -82,7 +82,7 @@ fn command_mount(toplevel: &Path, config: &Config) -> Result<()> {
     for config_mount in config.mounts.iter() {
         create_mount(toplevel, config_mount)?;
     }
-    log::info!("All done");
+    log_done();
     Ok(())
 }
 
@@ -93,7 +93,7 @@ fn command_unmount(toplevel: &Path, config: &Config) -> Result<()> {
     for config_snap in config.snapshots.iter().rev() {
         remove_snapshot(config_snap)?;
     }
-    log::info!("All done");
+    log_done();
     Ok(())
 }
 
@@ -105,6 +105,11 @@ fn command_config(config: &Config) -> Result<()> {
 
 fn command_completion(shell: &Shell) {
     cli::Args::clap().gen_completions_to(crate_name!(), *shell, &mut io::stdout());
+}
+
+#[inline]
+fn log_done() {
+    log::info!("All done");
 }
 
 pub fn main(args: &cli::Args) -> Result<()> {
