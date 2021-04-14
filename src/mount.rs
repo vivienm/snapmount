@@ -57,6 +57,11 @@ where
     P: AsRef<Path>,
 {
     if target.as_ref().exists() && is_mount(&target)? {
+        log::debug!("Syncing {}", target.as_ref().display());
+        let mut command = Command::new("sync");
+        command.arg("--file-system").arg(target.as_ref());
+        check_run(command)?;
+
         log::info!("Unmounting {}", target.as_ref().display());
         let mut command = Command::new("umount");
         command.arg(target.as_ref());
