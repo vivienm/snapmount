@@ -9,10 +9,8 @@ Type=oneshot
 Environment=RESTIC_CACHE_DIR=/var/cache/restic
 EnvironmentFile=/etc/restic/%i
 ExecStartPre=/usr/bin/mkdir -p /run/snapmount/%i
-ExecStartPre=/usr/local/bin/snapmount unmount /run/snapmount/%i
-ExecStartPre=/usr/local/bin/snapmount mount /run/snapmount/%i
+ExecStartPre=/usr/local/bin/snapmount mount -u /run/snapmount/%i
 ExecStart=/usr/bin/chroot /run/snapmount/%i /usr/bin/env -C $RESTIC_BASE_DIR -- /usr/bin/restic backup $RESTIC_BACKUP_ARGS
-ExecStopPost=/usr/bin/sync
 ExecStopPost=/usr/local/bin/snapmount unmount /run/snapmount/%i
 Restart=on-failure
 RestartSec=2min
