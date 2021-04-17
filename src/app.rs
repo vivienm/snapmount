@@ -227,15 +227,18 @@ impl CliCommand for cli::ArgsCommand {
     }
 }
 
-pub fn main(args: &cli::Args) -> Result<()> {
+pub fn main(args: &cli::Args) {
     env_logger::Builder::new()
         .format_module_path(false)
         .format_timestamp(None)
         .filter_level(args.log_level)
         .init();
-    if args.dry_run {
+    if let Err(e) = if args.dry_run {
         args.command.run(&FakeRunner, &args.config_path)
     } else {
         args.command.run(&ProcessRunner, &args.config_path)
+    } {
+        log::error!("{}: {:?}", e, e);
+        process::exit(1);
     }
 }

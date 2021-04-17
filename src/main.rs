@@ -8,6 +8,6 @@ mod error;
 mod lvm;
 mod mount;
 
-fn main() -> error::Result<()> {
-    app::main(&cli::Args::from_args())
+fn main() {
+    app::main(&cli::Args::from_args());
 }
