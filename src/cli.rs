@@ -83,6 +83,9 @@ pub struct Args {
         default_value = "/etc/snapmount/config.toml"
     )]
     pub config_path: PathBuf,
+    /// Do not actually run commands
+    #[structopt(short = "n", long = "dry-run")]
+    pub dry_run: bool,
     #[structopt(subcommand)]
     pub command: ArgsCommand,
 }

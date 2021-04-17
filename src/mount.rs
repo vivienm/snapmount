@@ -5,7 +5,7 @@ use std::process::Command;
 
 use fs_err as fs;
 
-use crate::command::check_run;
+use crate::command::Runner;
 use crate::error::Result;
 
 pub fn is_mount<P>(dir: P) -> io::Result<bool>
@@ -29,9 +29,16 @@ where
     })
 }
 
-pub fn mount<P>(source: P, target: P, type_: Option<&str>, options: &[String]) -> Result<()>
+pub fn mount<P, R>(
+    runner: &R,
+    source: P,
+    target: P,
+    type_: Option<&str>,
+    options: &[String],
+) -> Result<()>
 where
     P: AsRef<Path>,
+    R: Runner,
 {
     log::info!(
         "Mounting {} to {}",
@@ -49,23 +56,24 @@ where
     }
     command.arg(source.as_ref());
     command.arg(target.as_ref());
-    check_run(command)
+    runner.check_run(command)
 }
 
-pub fn unmount<P>(target: P) -> Result<()>
+pub fn unmount<P, R>(runner: &R, target: P) -> Result<()>
 where
     P: AsRef<Path>,
+    R: Runner,
 {
     if target.as_ref().exists() && is_mount(&target)? {
         log::debug!("Syncing {}", target.as_ref().display());
         let mut command = Command::new("sync");
         command.arg("--file-system").arg(target.as_ref());
-        check_run(command)?;
+        runner.check_run(command)?;
 
         log::info!("Unmounting {}", target.as_ref().display());
         let mut command = Command::new("umount");
         command.arg(target.as_ref());
-        check_run(command)?;
+        runner.check_run(command)?;
     }
     Ok(())
 }

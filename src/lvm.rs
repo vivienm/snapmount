@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
-use crate::command::check_run;
+use crate::command::Runner;
 use crate::error::Result;
 
 pub struct LogicalVolume<P> {
@@ -14,7 +14,10 @@ impl<P> LogicalVolume<P> {
     }
 }
 
-impl<P: AsRef<Path>> LogicalVolume<P> {
+impl<P> LogicalVolume<P>
+where
+    P: AsRef<Path>,
+{
     pub fn exists(&self) -> bool {
         self.path.as_ref().exists()
     }
@@ -23,7 +26,10 @@ impl<P: AsRef<Path>> LogicalVolume<P> {
         LogicalVolume::from_path(self.path.as_ref().with_file_name(name))
     }
 
-    pub fn snapshot(&self, name: &str, size: &str) -> Result<()> {
+    pub fn snapshot<R>(&self, runner: &R, name: &str, size: &str) -> Result<()>
+    where
+        R: Runner,
+    {
         log::info!(
             "Creating snapshot {} of {}",
             name,
@@ -39,10 +45,13 @@ impl<P: AsRef<Path>> LogicalVolume<P> {
             .arg(name)
             .arg(self.path.as_ref())
             .stdout(Stdio::null());
-        check_run(command)
+        runner.check_run(command)
     }
 
-    pub fn remove(&self) -> Result<()> {
+    pub fn remove<R>(&self, runner: &R) -> Result<()>
+    where
+        R: Runner,
+    {
         if self.exists() {
             log::info!("Removing snapshot {}", self.path.as_ref().display());
             let mut command = Command::new("lvremove");
@@ -51,7 +60,7 @@ impl<P: AsRef<Path>> LogicalVolume<P> {
                 .arg("--force")
                 .arg(self.path.as_ref())
                 .stdout(Stdio::null());
-            check_run(command)?;
+            runner.check_run(command)?;
         }
         Ok(())
     }
