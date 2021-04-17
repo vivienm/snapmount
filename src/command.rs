@@ -29,7 +29,7 @@ pub struct FakeRunner;
 
 impl Runner for FakeRunner {
     fn run(&self, command: &mut Command) -> Result<process::ExitStatus> {
-        log::debug!("Run command {:?} [DRY RUN]", command);
+        log::info!("Run command {:?} [DRY RUN]", command);
         Ok(ExitStatusExt::from_raw(0))
     }
 
