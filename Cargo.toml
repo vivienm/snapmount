@@ -2,7 +2,7 @@
 name = "snapmount"
 version = "0.1.0"
 authors = ["Vivien Maisonneuve <v.maisonneuve@gmail.com>"]
-edition = "2018"
+edition = "2021"
 description = "Create and mount backup snapshots"
 license = "MIT"
 
