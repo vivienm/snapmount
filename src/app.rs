@@ -62,7 +62,7 @@ where
     } else {
         toplevel
             .as_ref()
-            .join(target.strip_prefix(root_dir).unwrap_or(&target))
+            .join(target.strip_prefix(root_dir).unwrap_or(target))
     }
 }
 
