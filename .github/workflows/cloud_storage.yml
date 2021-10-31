@@ -10,14 +10,19 @@ jobs:
     name: Upload
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
-    - name: Extract branch name
-      run: echo "##[set-output name=branch;]${GITHUB_REF#refs/heads/}"
-      id: extract_branch
+    - uses: actions/checkout@v2
+    - uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
     - uses: actions-rs/cargo@v1
       with:
         command: install
         args: --no-track --locked --root cargo --path .
+    - name: Extract branch name
+      run: echo "##[set-output name=branch;]${GITHUB_REF#refs/heads/}"
+      id: extract_branch
     - uses: google-github-actions/upload-cloud-storage@main
       with:
         credentials: ${{ secrets.GCP_CREDENTIALS }}
