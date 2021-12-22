@@ -11,16 +11,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - name: Extract branch name
-      run: echo "##[set-output name=branch;]${GITHUB_REF#refs/heads/}"
-      id: extract_branch
     - uses: actions-rs/cargo@v1
       with:
         command: install
-        args: --no-track --locked --root cargo --path .
-    - uses: google-github-actions/upload-cloud-storage@main
+        args: --no-track --locked --root .cargo --path .
+    - uses: google-github-actions/auth@v0
       with:
-        credentials: ${{ secrets.GCP_CREDENTIALS }}
-        path: cargo
-        destination: ${{ secrets.GCS_BUCKET }}/${{ steps.extract_branch.outputs.branch }}
-        parent: false
+        credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+    - uses: google-github-actions/setup-gcloud@v0.3.0
+    - name: Publish build artifacts
+      run: gsutil rsync -dr .cargo gs://${{ secrets.GCS_BUCKET }}/
