@@ -2,13 +2,13 @@ use std::{io, process::Command, result};
 
 use thiserror::Error;
 
-#[derive(Error, Debug)]
+#[derive(Debug, Error)]
 pub enum Error {
-    #[error("{0}")]
+    #[error(transparent)]
     Io(#[from] io::Error),
-    #[error("{0}")]
+    #[error(transparent)]
     TomlSer(#[from] toml::ser::Error),
-    #[error("{0}")]
+    #[error(transparent)]
     TomlDe(#[from] toml::de::Error),
     #[error("command failure")]
     Command(Command),
