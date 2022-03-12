@@ -1,4 +1,4 @@
-use structopt::StructOpt;
+use clap::Parser;
 
 mod app;
 mod cli;
@@ -9,5 +9,5 @@ mod lvm;
 mod mount;
 
 fn main() {
-    app::main(&cli::Args::from_args());
+    app::main(&cli::Args::parse());
 }

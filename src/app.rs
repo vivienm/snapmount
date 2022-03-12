@@ -4,8 +4,8 @@ use std::{
     process,
 };
 
+use clap::CommandFactory;
 use fs_err as fs;
-use structopt::{clap::crate_name, StructOpt};
 
 use crate::{
     cli,
@@ -210,7 +210,14 @@ impl CliCommand for cli::ArgsCommandCompletion {
     where
         R: Runner,
     {
-        cli::Args::clap().gen_completions_to(crate_name!(), self.shell, &mut io::stdout());
+        let mut cmd = cli::Args::command();
+        let cmd = &mut cmd;
+        clap_complete::generate(
+            self.shell,
+            cmd,
+            cmd.get_name().to_string(),
+            &mut io::stdout(),
+        );
         Ok(())
     }
 }

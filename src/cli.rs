@@ -1,56 +1,57 @@
 use std::{ffi::OsString, path::PathBuf};
 
-use structopt::{clap::Shell, StructOpt};
+use clap::{ArgEnum, Parser};
+use clap_complete::shells::Shell;
 
-#[derive(StructOpt)]
+#[derive(Parser)]
 pub struct ArgsCommandMount {
     /// Unmounts and removes existing backup snapshots first
-    #[structopt(short = "u", long = "unmount-before", alias = "umount-before")]
+    #[clap(short = 'u', long = "unmount-before", alias = "umount-before")]
     pub unmount_before: bool,
     /// Toplevel mount directory
-    #[structopt(parse(from_os_str))]
+    #[clap(parse(from_os_str))]
     pub target: PathBuf,
 }
 
-#[derive(StructOpt)]
+#[derive(Parser)]
 pub struct ArgsCommandUnmount {
     /// Toplevel mount directory
-    #[structopt(parse(from_os_str))]
+    #[clap(parse(from_os_str))]
     pub target: PathBuf,
 }
 
-#[derive(StructOpt)]
+#[derive(Parser)]
 pub struct ArgsCommandRun {
     /// Unmounts and removes existing backup snapshots first
-    #[structopt(short = "u", long = "unmount-before", alias = "umount-before")]
+    #[clap(short = 'u', long = "unmount-before", alias = "umount-before")]
     pub unmount_before: bool,
     /// Toplevel mount directory
-    #[structopt(parse(from_os_str))]
+    #[clap(parse(from_os_str))]
     pub target: PathBuf,
     /// Program to be lauched
-    #[structopt(parse(from_os_str))]
+    #[clap(parse(from_os_str))]
     pub program: OsString,
-    #[structopt(parse(from_os_str))]
+    #[clap(parse(from_os_str))]
     /// Arguments to pass to the program
     pub args: Vec<OsString>,
 }
 
-#[derive(StructOpt)]
+#[derive(Parser)]
 pub struct ArgsCommandConfig {}
 
-#[derive(StructOpt)]
+#[derive(Parser)]
 pub struct ArgsCommandCompletion {
     /// Shell to produce a completion file for
-    #[structopt(possible_values = &Shell::variants())]
+    #[clap(possible_values = Shell::value_variants().iter().filter_map(ArgEnum::to_possible_value))]
     pub shell: Shell,
 }
 
-#[derive(StructOpt)]
+#[derive(Parser)]
 pub enum ArgsCommand {
     /// Creates and mounts backup snapshots
     Mount(ArgsCommandMount),
     /// Unmounts and removes backup snapshots
-    #[structopt(alias = "umount")]
+    #[clap(alias = "umount")]
     Unmount(ArgsCommandUnmount),
     /// Run an arbitrary command
     Run(ArgsCommandRun),
@@ -61,12 +62,11 @@ pub enum ArgsCommand {
 }
 
 /// Create and mount backup snapshots
-#[derive(StructOpt)]
-#[structopt(global_setting = structopt::clap::AppSettings::ColoredHelp)]
+#[derive(Parser)]
 pub struct Args {
     /// Logging level.
-    #[structopt(
-        short = "l",
+    #[clap(
+        short = 'l',
         long = "log-level",
         env = "SNAPMOUNT_LOG_LEVEL",
         default_value = "info",
@@ -74,16 +74,16 @@ pub struct Args {
     )]
     pub log_level: log::LevelFilter,
     /// Path to the configuration file.
-    #[structopt(
-        short = "c",
+    #[clap(
+        short = 'c',
         long = "config",
         env = "SNAPMOUNT_CONFIG",
         default_value = "/etc/snapmount/config.toml"
     )]
     pub config_path: PathBuf,
     /// Does not actually run commands
-    #[structopt(short = "n", long = "dry-run")]
+    #[clap(short = 'n', long = "dry-run")]
     pub dry_run: bool,
-    #[structopt(subcommand)]
+    #[clap(subcommand)]
     pub command: ArgsCommand,
 }
