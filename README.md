@@ -89,7 +89,7 @@ $ sudo snapmount unmount /mnt
 These steps may be wrapped in a single command
 
 ```console
-$ sudo snapmount run /mnt <BACKUP_PROGRAM>`
+$ sudo snapmount run /mnt <BACKUP_PROGRAM>
 ```
 
 Run `snapmount --help` to list all options and commands.
