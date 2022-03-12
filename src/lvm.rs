@@ -1,8 +1,9 @@
-use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::{
+    path::{Path, PathBuf},
+    process::{Command, Stdio},
+};
 
-use crate::command::Runner;
-use crate::error::Result;
+use crate::{command::Runner, error::Result};
 
 pub struct LogicalVolume<P> {
     pub path: P,

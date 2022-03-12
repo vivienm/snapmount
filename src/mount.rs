@@ -1,12 +1,8 @@
-use std::io;
-use std::os::linux::fs::MetadataExt;
-use std::path::Path;
-use std::process::Command;
+use std::{io, os::linux::fs::MetadataExt, path::Path, process::Command};
 
 use fs_err as fs;
 
-use crate::command::Runner;
-use crate::error::Result;
+use crate::{command::Runner, error::Result};
 
 pub fn is_mount<P>(dir: P) -> io::Result<bool>
 where

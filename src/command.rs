@@ -1,5 +1,7 @@
-use std::os::unix::process::ExitStatusExt;
-use std::process::{self, Command};
+use std::{
+    os::unix::process::ExitStatusExt,
+    process::{self, Command},
+};
 
 use crate::error::{Error, Result};
 

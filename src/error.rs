@@ -1,6 +1,4 @@
-use std::io;
-use std::process::Command;
-use std::result;
+use std::{io, process::Command, result};
 
 use thiserror::Error;
 

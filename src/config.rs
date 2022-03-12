@@ -1,5 +1,7 @@
-use std::io::{Read, Write};
-use std::path::PathBuf;
+use std::{
+    io::{Read, Write},
+    path::PathBuf,
+};
 
 use serde::{Deserialize, Serialize};
 

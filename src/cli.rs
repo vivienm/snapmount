@@ -1,8 +1,6 @@
-use std::ffi::OsString;
-use std::path::PathBuf;
+use std::{ffi::OsString, path::PathBuf};
 
-use structopt::clap::Shell;
-use structopt::StructOpt;
+use structopt::{clap::Shell, StructOpt};
 
 #[derive(StructOpt)]
 pub struct ArgsCommandMount {

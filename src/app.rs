@@ -1,17 +1,20 @@
-use std::io;
-use std::path::{self, Path, PathBuf};
-use std::process;
+use std::{
+    io,
+    path::{self, Path, PathBuf},
+    process,
+};
 
 use fs_err as fs;
-use structopt::clap::crate_name;
-use structopt::StructOpt;
+use structopt::{clap::crate_name, StructOpt};
 
-use crate::cli;
-use crate::command::{FakeRunner, ProcessRunner, Runner};
-use crate::config::{Config, ConfigMount, ConfigSnapshot};
-use crate::error::Result;
-use crate::lvm;
-use crate::mount::{mount, unmount};
+use crate::{
+    cli,
+    command::{FakeRunner, ProcessRunner, Runner},
+    config::{Config, ConfigMount, ConfigSnapshot},
+    error::Result,
+    lvm,
+    mount::{mount, unmount},
+};
 
 fn load_config<P>(config_path: P) -> Result<Config>
 where
